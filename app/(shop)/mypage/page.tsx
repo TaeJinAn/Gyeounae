@@ -69,7 +69,10 @@ async function updateItemStatus(formData: FormData) {
   if (!user || user.identityStatus !== "verified") {
     redirect("/verify");
   }
-  const itemId = String(formData.get("itemId"));
+  const itemId = String(formData.get("itemId") ?? formData.get("listingId") ?? "");
+  if (!itemId) {
+    return errorResult("상품을 찾을 수 없어요.");
+  }
   const status = String(formData.get("status"));
   if (!["AVAILABLE", "RESERVED", "SOLD"].includes(status)) {
     return errorResult("잘못된 상태입니다.");

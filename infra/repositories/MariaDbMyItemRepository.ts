@@ -92,7 +92,7 @@ export class MariaDbMyItemRepository implements MyItemRepository {
   }
 
   async updateStatus(command: UpdateMyItemStatusCommand) {
-    await mariaDbPool.query(
+    const [result] = await mariaDbPool.query<any>(
       `
       UPDATE items
       SET status = ?, is_sold = ?
@@ -105,6 +105,26 @@ export class MariaDbMyItemRepository implements MyItemRepository {
         command.userId
       ]
     );
+    const affectedRows = result?.affectedRows ?? 0;
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[UpdateMyItemStatus]", {
+        itemId: command.itemId,
+        userId: command.userId,
+        status: command.status,
+        affectedRows
+      });
+    }
+    if (affectedRows === 0) {
+      return { affectedRows };
+    }
+    const [rows] = await mariaDbPool.query<Array<{ status: string }>>(
+      "SELECT status FROM items WHERE id = ?",
+      [command.itemId]
+    );
+    return {
+      affectedRows,
+      status: rows[0]?.status as "AVAILABLE" | "RESERVED" | "SOLD" | undefined
+    };
   }
 
   async softDelete(command: DeleteMyItemCommand) {

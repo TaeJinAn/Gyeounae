@@ -96,8 +96,7 @@ export class MariaDbListingAdminQueryRepository
             ? "hidden"
             : "visible",
         status:
-          row.status ??
-          (row.is_sold === 1 ? "SOLD" : "AVAILABLE"),
+          row.status ?? "AVAILABLE",
         sellerId: row.owner_user_id,
         createdAt: row.created_at,
         primaryImageUrl: row.primary_image_url ?? undefined

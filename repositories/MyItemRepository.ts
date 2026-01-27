@@ -57,6 +57,9 @@ export interface MyItemRepository {
   findAll(command: MyItemsCommand): Promise<Listing[]>;
   create(command: CreateMyItemCommand): Promise<void>;
   update(command: UpdateMyItemCommand): Promise<void>;
-  updateStatus(command: UpdateMyItemStatusCommand): Promise<void>;
+  updateStatus(command: UpdateMyItemStatusCommand): Promise<{
+    affectedRows: number;
+    status?: "AVAILABLE" | "RESERVED" | "SOLD";
+  }>;
   softDelete(command: DeleteMyItemCommand): Promise<void>;
 }

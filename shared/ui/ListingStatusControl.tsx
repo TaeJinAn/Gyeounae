@@ -17,7 +17,7 @@ export function ListingStatusControl({
   status: ListingStatus;
   labels: Record<ListingStatus, string>;
   badgeLabels: Record<ListingStatus, string>;
-  onUpdate: (formData: FormData) => Promise<Result>;
+  onUpdate: (formData: FormData) => Promise<Result & { status?: ListingStatus }>;
 }) {
   const [current, setCurrent] = useState<ListingStatus>(status);
   const [isPending, startTransition] = useTransition();
@@ -33,6 +33,9 @@ export function ListingStatusControl({
       onUpdate(formData).then((result) => {
         if (result.ok) {
           toast.success(result.message);
+          if (result.status) {
+            setCurrent(result.status);
+          }
         } else {
           toast.error(result.message);
           setCurrent(previous);
