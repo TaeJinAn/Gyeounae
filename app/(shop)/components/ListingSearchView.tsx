@@ -209,7 +209,11 @@ export async function ListingSearchView({
         hrefFor={(value) => buildNextFilters({ size: value })}
         allLabel={t("common.all", locale)}
       />
-      <ListingGrid listings={listings} locale={locale} />
+      <ListingGrid
+        listings={listings}
+        locale={locale}
+        viewerFootProfile={currentUser?.footProfile}
+      />
       {showEmptyState && listings.length === 0 ? (
         <ListingEmptyState
           canCreateListing={canCreateListing}
@@ -224,7 +228,11 @@ export async function ListingSearchView({
           <div className="text-sm font-semibold text-navy-700">
             {t("listing.alsoViewed", locale)}
           </div>
-          <ListingGrid listings={alsoViewed} locale={locale} />
+          <ListingGrid
+            listings={alsoViewed}
+            locale={locale}
+            viewerFootProfile={currentUser?.footProfile}
+          />
         </section>
       ) : null}
       <AdSlot slot="LIST_INLINE" />

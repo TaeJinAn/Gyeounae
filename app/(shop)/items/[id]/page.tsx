@@ -11,7 +11,7 @@ import { MariaDbUserRepository } from "@infra/repositories/MariaDbUserRepository
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { FootMatchScore } from "@domain/value-objects/FootMatchScore";
+import { calculateFootMatch } from "@domain/foot/FootMatch";
 import { conditionLabels } from "@domain/value-objects/ItemCondition";
 import { ItemActionButtons } from "@shared/ui/ItemActionButtons";
 import { getLocale } from "@shared/i18n/locale";
@@ -98,11 +98,34 @@ export default async function ItemDetailPage({
   const isBoots = listing.category === "boots";
   const buyerFoot = user?.footProfile;
   const sellerFoot = listing.sellerFootProfile;
-  const hasBuyerFoot = buyerFoot?.hasAnyDimension() ?? false;
-  const hasSellerFoot = sellerFoot?.hasAnyDimension() ?? false;
-  const footMatch = hasBuyerFoot && hasSellerFoot
-    ? FootMatchScore.compute({ buyer: buyerFoot!, seller: sellerFoot! })
-    : null;
+  const hasCompleteFootProfile = (profile?: {
+    lengthMm?: number;
+    widthMm?: number;
+    heightMm?: number;
+  }) =>
+    typeof profile?.lengthMm === "number" &&
+    profile.lengthMm > 0 &&
+    typeof profile?.widthMm === "number" &&
+    profile.widthMm > 0 &&
+    typeof profile?.heightMm === "number" &&
+    profile.heightMm > 0;
+  const hasBuyerFoot = hasCompleteFootProfile(buyerFoot);
+  const hasSellerFoot = hasCompleteFootProfile(sellerFoot);
+  const footMatch =
+    hasBuyerFoot && hasSellerFoot
+      ? calculateFootMatch(
+          {
+            lengthMm: buyerFoot!.lengthMm!,
+            widthMm: buyerFoot!.widthMm!,
+            heightMm: buyerFoot!.heightMm!
+          },
+          {
+            lengthMm: sellerFoot!.lengthMm!,
+            widthMm: sellerFoot!.widthMm!,
+            heightMm: sellerFoot!.heightMm!
+          }
+        )
+      : null;
 
   if (isPrivate) {
     return (
@@ -369,42 +392,46 @@ export default async function ItemDetailPage({
         {isBoots ? (
           <div className="mt-4 rounded-xl border border-ice-100 bg-ice-50 p-4 text-xs text-navy-700">
             {footMatch ? (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 <div className="text-sm font-semibold text-navy-700">
-                  {t("listing.detail.footmatch.title", locale)} {footMatch.totalPercent}%
+                  {t("listing.detail.footmatch.title", locale)}
                 </div>
-                <div className="flex flex-wrap gap-2 text-[11px] text-navy-600">
-                  <span className="rounded-full border border-ice-200 px-2 py-1">
-                    {t("listing.detail.footmatch.length", locale)} {footMatch.lengthPercent}%
-                  </span>
-                  <span className="rounded-full border border-ice-200 px-2 py-1">
-                    {t("listing.detail.footmatch.width", locale)} {footMatch.widthPercent}%
-                  </span>
-                  <span className="rounded-full border border-ice-200 px-2 py-1">
-                    {t("listing.detail.footmatch.height", locale)} {footMatch.heightPercent}%
-                  </span>
+                <div className="grid gap-2 text-xs text-navy-600">
+                  <div className="flex items-center justify-between">
+                    <span>{t("footmatch.label.length", locale)}</span>
+                    <span>{footMatch.lengthMatch}%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>{t("footmatch.label.height", locale)}</span>
+                    <span>{footMatch.heightMatch}%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>{t("footmatch.label.width", locale)}</span>
+                    <span>{footMatch.widthMatch}%</span>
+                  </div>
+                </div>
+                <div className="text-base font-bold text-navy-700">
+                  {t("footmatch.total", locale)} {footMatch.totalMatch}%
+                </div>
+                <div className="grid gap-1 text-[11px] text-navy-500">
+                  <div>{t("footmatch.guide.length", locale)}</div>
+                  <div>{t("footmatch.guide.height", locale)}</div>
+                  <div>{t("footmatch.guide.width", locale)}</div>
                 </div>
               </div>
+            ) : !hasSellerFoot ? (
+              <div className="text-xs text-navy-600">
+                {t("footmatch.missingSeller", locale)}
+              </div>
             ) : (
-              <div className="flex flex-col gap-2">
-                <div>{t("listing.detail.footmatch.add", locale)}</div>
-                <div className="flex gap-2">
-                  {!session ? (
-                    <Link
-                      href="/auth"
-                      className="rounded-full border border-ice-200 px-3 py-1 text-xs font-semibold text-navy-700"
-                    >
-                      {t("listing.detail.footmatch.login", locale)}
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/profile"
-                      className="rounded-full border border-ice-200 px-3 py-1 text-xs font-semibold text-navy-700"
-                    >
-                      {t("listing.detail.footmatch.addProfile", locale)}
-                    </Link>
-                  )}
-                </div>
+              <div className="flex flex-col gap-2 text-xs text-navy-600">
+                <div>{t("footmatch.missingUser", locale)}</div>
+                <Link
+                  href="/mypage"
+                  className="inline-flex w-fit rounded-full border border-ice-200 px-3 py-1 text-xs font-semibold text-navy-700"
+                >
+                  {t("footmatch.cta", locale)}
+                </Link>
               </div>
             )}
           </div>
@@ -481,7 +508,11 @@ export default async function ItemDetailPage({
         <div className="text-sm font-semibold text-navy-700">
           {t("listing.detail.similar", locale)}
         </div>
-        <ListingGrid listings={similarItems} locale={locale} />
+        <ListingGrid
+          listings={similarItems}
+          locale={locale}
+          viewerFootProfile={buyerFoot ?? undefined}
+        />
       </section>
 
       <AdSlot slot="DETAIL_BOTTOM" />
