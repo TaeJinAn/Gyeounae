@@ -8,6 +8,7 @@ import { MariaDbUserRepository } from "@infra/repositories/MariaDbUserRepository
 import { GetMyItemsUsecase } from "@features/usecases/GetMyItemsUsecase";
 import { MariaDbMyItemRepository } from "@infra/repositories/MariaDbMyItemRepository";
 import { DeleteMyItemUsecase } from "@features/usecases/DeleteMyItemUsecase";
+import { UpdateMyItemStatusUsecase } from "@features/usecases/UpdateMyItemStatusUsecase";
 import { GetMyFavoritesUsecase } from "@features/usecases/GetMyFavoritesUsecase";
 import { MariaDbListingRepository } from "@infra/repositories/MariaDbListingRepository";
 import { MariaDbRecommendationEventRepository } from "@infra/repositories/MariaDbRecommendationEventRepository";
@@ -17,6 +18,8 @@ import { format, t } from "@shared/i18n/t";
 import { FootProfileForm } from "@shared/ui/FootProfileForm";
 import { MariaDbModerationActionRepository } from "@infra/repositories/MariaDbModerationActionRepository";
 import { GetLatestModerationActionUsecase } from "@features/usecases/GetLatestModerationActionUsecase";
+import { MyItemsList } from "@shared/ui/MyItemsList";
+import { errorResult } from "@shared/types/Result";
 
 async function deleteItem(formData: FormData) {
   "use server";
@@ -49,6 +52,40 @@ async function deleteItem(formData: FormData) {
   redirect(
     `/mypage?toastType=success&toast=${encodeURIComponent(result.message)}`
   );
+}
+
+async function updateItemStatus(formData: FormData) {
+  "use server";
+  const session = await getSessionPayload();
+  if (!session) {
+    redirect("/auth");
+  }
+  const user = await new GetUserByIdUsecase(new MariaDbUserRepository()).execute({
+    userId: session.userId
+  });
+  if (!user || user.identityStatus !== "verified") {
+    redirect("/verify");
+  }
+  const itemId = String(formData.get("itemId"));
+  const status = String(formData.get("status"));
+  if (!["AVAILABLE", "RESERVED", "SOLD"].includes(status)) {
+    return errorResult("잘못된 상태입니다.");
+  }
+  const result = await new UpdateMyItemStatusUsecase(
+    new MariaDbMyItemRepository()
+  ).execute({
+    itemId,
+    userId: session.userId,
+    status: status as "AVAILABLE" | "RESERVED" | "SOLD"
+  });
+  if (result.ok) {
+    revalidatePath("/mypage");
+    revalidatePath(`/items/${itemId}`);
+    revalidatePath("/");
+    revalidatePath("/ski");
+    revalidatePath("/snowboard");
+  }
+  return result;
 }
 
 type MyPageProps = {
@@ -231,57 +268,35 @@ export default async function MyPage({ searchParams }: MyPageProps) {
           <h2 className="text-lg font-semibold text-navy-700">
             {t("mypage.tab.items", locale)}
           </h2>
-          <div className="mt-4 flex flex-col gap-3 text-sm text-navy-700">
-            {items.length === 0 ? (
-              <div className="text-xs text-navy-500">
-                {t("mypage.items.empty", locale)}
-              </div>
-            ) : (
-              items.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between rounded-xl border border-ice-100 bg-ice-50 p-4"
-                >
-                  <div className="flex items-center gap-3">
-                    {item.primaryImageUrl ? (
-                      <div className="relative h-14 w-14 overflow-hidden rounded-xl bg-ice-100">
-                        <Image
-                          src={item.primaryImageUrl}
-                          alt={item.title}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-14 w-14 rounded-xl bg-ice-100" />
-                    )}
-                    <div>
-                      <div className="font-semibold">{item.title}</div>
-                      <div className="text-xs text-navy-500">
-                        {t(`listing.status.${item.status.toLowerCase()}` as any, locale)} ·{" "}
-                        {item.visibility}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 text-xs">
-                    <Link
-                      href={`/items/${item.id}/edit`}
-                      className="rounded-full border border-ice-200 px-3 py-1"
-                    >
-                      {t("mypage.items.edit", locale)}
-                    </Link>
-                    <form action={deleteItem}>
-                      <input type="hidden" name="itemId" value={item.id} />
-                      <button className="rounded-full border border-ice-200 px-3 py-1 text-red-600">
-                        {t("mypage.items.delete", locale)}
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          {items.length === 0 ? (
+            <div className="mt-4 text-xs text-navy-500">
+              {t("mypage.items.empty", locale)}
+            </div>
+          ) : (
+            <MyItemsList
+              items={items.map((item) => ({
+                id: item.id,
+                title: item.title,
+                status: item.status,
+                visibility: item.visibility,
+                primaryImageUrl: item.primaryImageUrl
+              }))}
+              statusLabels={{
+                AVAILABLE: t("listing.status.available", locale),
+                RESERVED: t("listing.status.reserved", locale),
+                SOLD: t("listing.status.sold", locale)
+              }}
+              statusBadgeLabels={{
+                AVAILABLE: t("listing.status.available", locale),
+                RESERVED: t("listing.status.reserved", locale),
+                SOLD: t("listing.status.sold", locale)
+              }}
+              editLabel={t("mypage.items.edit", locale)}
+              deleteLabel={t("mypage.items.delete", locale)}
+              onDelete={deleteItem}
+              onUpdateStatus={updateItemStatus}
+            />
+          )}
         </section>
       ) : null}
 
