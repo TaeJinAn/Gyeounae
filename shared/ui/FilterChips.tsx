@@ -20,10 +20,6 @@ export function FilterChips({
   hrefFor,
   allLabel
 }: FilterChipsProps) {
-  if (options.length === 0) {
-    return null;
-  }
-
   return (
     <section className="flex flex-col gap-2">
       <div className="text-xs font-semibold uppercase tracking-wide text-navy-600">

@@ -86,6 +86,7 @@ CREATE TABLE events (
   created_at DATETIME NOT NULL,
   INDEX idx_events_item (item_id),
   INDEX idx_events_user (user_id),
+  INDEX idx_events_item_type (item_id, event_type),
   INDEX idx_events_created (created_at)
 );
 
@@ -113,6 +114,35 @@ CREATE TABLE inquiries (
   created_at DATETIME NOT NULL,
   INDEX idx_inquiries_status (status),
   INDEX idx_inquiries_created (created_at)
+);
+
+CREATE TABLE comments (
+  id CHAR(36) PRIMARY KEY,
+  item_id CHAR(36) NOT NULL,
+  user_id CHAR(36) NOT NULL,
+  parent_id CHAR(36) NULL,
+  body TEXT NOT NULL,
+  is_hidden TINYINT(1) NOT NULL DEFAULT 0,
+  deleted_at DATETIME NULL,
+  created_at DATETIME NOT NULL,
+  INDEX idx_comments_item (item_id),
+  INDEX idx_comments_parent (parent_id),
+  INDEX idx_comments_user (user_id),
+  INDEX idx_comments_created (created_at),
+  INDEX idx_comments_visibility (is_hidden, deleted_at)
+);
+
+CREATE TABLE comment_reports (
+  id CHAR(36) PRIMARY KEY,
+  comment_id CHAR(36) NOT NULL,
+  reporter_user_id CHAR(36) NOT NULL,
+  reason_code VARCHAR(40) NOT NULL,
+  status VARCHAR(20) NOT NULL,
+  memo TEXT NULL,
+  created_at DATETIME NOT NULL,
+  UNIQUE KEY uniq_comment_report (comment_id, reporter_user_id),
+  INDEX idx_comment_reports_status (status),
+  INDEX idx_comment_reports_created (created_at)
 );
 
 CREATE TABLE moderation_actions (

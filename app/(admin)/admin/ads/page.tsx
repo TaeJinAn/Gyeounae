@@ -308,6 +308,12 @@ export default async function AdminAdsPage({
     if (status === "ENDED") return t("admin.ads.status.ended", locale);
     return status;
   };
+  const statusTone = (status: string) => {
+    if (status === "RUNNING") return "border-emerald-200 text-emerald-700";
+    if (status === "PAUSED") return "border-amber-200 text-amber-700";
+    if (status === "ENDED") return "border-rose-200 text-rose-700";
+    return "border-ice-200 text-navy-700";
+  };
   const usecase = new GetAdCampaignsUsecase(
     new MariaDbAdCampaignQueryRepository()
   );
@@ -529,11 +535,20 @@ export default async function AdminAdsPage({
             className="flex flex-col gap-4 rounded-2xl border border-ice-100 bg-white p-4"
           >
             <div className="flex flex-col gap-2">
-              <div className="text-sm font-semibold text-navy-700">
-                {campaign.title}
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-navy-700">
+                  {campaign.title}
+                </div>
+                <span
+                  className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${statusTone(
+                    campaign.status
+                  )}`}
+                >
+                  {statusLabel(campaign.status)}
+                </span>
               </div>
               <div className="text-xs text-navy-500">
-                {campaign.id} · {campaign.slotId} · {statusLabel(campaign.status)}
+                {campaign.id} · {campaign.slotId}
               </div>
             </div>
             <div className="flex flex-wrap gap-2">

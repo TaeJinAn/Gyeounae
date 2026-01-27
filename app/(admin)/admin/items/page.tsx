@@ -72,6 +72,21 @@ export default async function AdminItemsPage({ searchParams }: AdminItemsPagePro
   const listings = await new AdminSearchListingsUsecase(
     new MariaDbListingAdminQueryRepository()
   ).execute({ visibility, status, sport });
+  const statusLabel = (listing: (typeof listings)[number]) => {
+    if (listing.visibility === "deleted") {
+      return { label: "삭제됨", tone: "border-rose-200 text-rose-700" };
+    }
+    if (listing.visibility === "hidden") {
+      return { label: "숨김", tone: "border-amber-200 text-amber-700" };
+    }
+    if (listing.status === "RESERVED") {
+      return { label: "예약중", tone: "border-amber-200 text-amber-700" };
+    }
+    if (listing.status === "SOLD") {
+      return { label: "판매완료", tone: "border-rose-200 text-rose-700" };
+    }
+    return { label: "판매중", tone: "border-emerald-200 text-emerald-700" };
+  };
 
   return (
     <section className="flex flex-col gap-4">
@@ -82,28 +97,35 @@ export default async function AdminItemsPage({ searchParams }: AdminItemsPagePro
         {listings.map((listing) => (
           <div
             key={listing.id}
-            className="flex flex-col gap-3 rounded-2xl border border-ice-100 bg-white p-4"
+            className="relative flex flex-col gap-3 rounded-2xl border border-ice-100 bg-white p-4"
           >
-            <div className="flex items-center justify-between">
+            <Link
+              href={`/items/${listing.id}`}
+              aria-label={`${listing.title} 상세로 이동`}
+              className="absolute inset-0"
+            />
+            <div className="relative z-10 flex items-center justify-between">
               <div>
                 <div className="text-sm font-semibold text-navy-700">
-                  <Link
-                    href={`/admin/items/${listing.id}`}
-                    className="hover:underline"
-                  >
-                    {listing.title}
-                  </Link>
+                  {listing.title}
                 </div>
                 <div className="text-xs text-navy-500">
                   {listing.sport} · {listing.brand} · {listing.sizeLabel}
                 </div>
               </div>
-              <div className="text-xs text-navy-500">
-                {listing.visibility} ·{" "}
-                {t(`listing.status.${listing.status.toLowerCase()}` as any, locale)}
-              </div>
+              {(() => {
+                const badge = statusLabel(listing);
+                return (
+                  <span
+                    className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${badge.tone}`}
+                  >
+                    {badge.label}
+                  </span>
+                );
+              })()}
             </div>
-            <AdminItemActions
+            <div className="relative z-10">
+              <AdminItemActions
               listingId={listing.id}
               status={listing.status}
               visibility={listing.visibility}
@@ -124,7 +146,8 @@ export default async function AdminItemsPage({ searchParams }: AdminItemsPagePro
                 deleteDescription: t("admin.items.deleteDescription", locale)
               }}
               onAction={moderateListing}
-            />
+              />
+            </div>
           </div>
         ))}
       </div>

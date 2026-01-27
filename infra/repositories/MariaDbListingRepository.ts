@@ -37,6 +37,8 @@ type ListingRow = {
   seller_foot_length_mm?: number | null;
   seller_foot_width_mm?: number | null;
   seller_foot_height_mm?: number | null;
+  view_count?: number | null;
+  favorite_count?: number | null;
 };
 
 export class MariaDbListingRepository implements ListingRepository {
@@ -51,7 +53,9 @@ export class MariaDbListingRepository implements ListingRepository {
         images.image_url AS primary_image_url,
         seller_foot.foot_length_mm AS seller_foot_length_mm,
         seller_foot.foot_width_mm AS seller_foot_width_mm,
-        seller_foot.foot_height_mm AS seller_foot_height_mm
+        seller_foot.foot_height_mm AS seller_foot_height_mm,
+        COALESCE(views.view_count, 0) AS view_count,
+        COALESCE(favorites.favorite_count, 0) AS favorite_count
       FROM items
       INNER JOIN brands ON brands.id = items.brand_id
       LEFT JOIN item_images AS images
@@ -59,6 +63,18 @@ export class MariaDbListingRepository implements ListingRepository {
        AND images.sort_order = 1
       LEFT JOIN foot_profiles AS seller_foot
         ON seller_foot.user_id = items.owner_user_id
+      LEFT JOIN (
+        SELECT item_id, COUNT(*) AS view_count
+        FROM events
+        WHERE event_type = 'view'
+        GROUP BY item_id
+      ) AS views ON views.item_id = items.id
+      LEFT JOIN (
+        SELECT item_id, COUNT(DISTINCT user_id) AS favorite_count
+        FROM events
+        WHERE event_type = 'favorite' AND user_id IS NOT NULL
+        GROUP BY item_id
+      ) AS favorites ON favorites.item_id = items.id
       ${whereSql}
       ORDER BY ${orderBy}
       LIMIT 80
@@ -142,7 +158,9 @@ export class MariaDbListingRepository implements ListingRepository {
         images.image_url AS primary_image_url,
         seller_foot.foot_length_mm AS seller_foot_length_mm,
         seller_foot.foot_width_mm AS seller_foot_width_mm,
-        seller_foot.foot_height_mm AS seller_foot_height_mm
+        seller_foot.foot_height_mm AS seller_foot_height_mm,
+        COALESCE(views.view_count, 0) AS view_count,
+        COALESCE(favorites.favorite_count, 0) AS favorite_count
       FROM items
       INNER JOIN brands ON brands.id = items.brand_id
       LEFT JOIN item_images AS images
@@ -150,6 +168,18 @@ export class MariaDbListingRepository implements ListingRepository {
        AND images.sort_order = 1
       LEFT JOIN foot_profiles AS seller_foot
         ON seller_foot.user_id = items.owner_user_id
+      LEFT JOIN (
+        SELECT item_id, COUNT(*) AS view_count
+        FROM events
+        WHERE event_type = 'view'
+        GROUP BY item_id
+      ) AS views ON views.item_id = items.id
+      LEFT JOIN (
+        SELECT item_id, COUNT(DISTINCT user_id) AS favorite_count
+        FROM events
+        WHERE event_type = 'favorite' AND user_id IS NOT NULL
+        GROUP BY item_id
+      ) AS favorites ON favorites.item_id = items.id
       WHERE items.id = ?
       LIMIT 1
       `,
@@ -170,7 +200,9 @@ export class MariaDbListingRepository implements ListingRepository {
         images.image_url AS primary_image_url,
         seller_foot.foot_length_mm AS seller_foot_length_mm,
         seller_foot.foot_width_mm AS seller_foot_width_mm,
-        seller_foot.foot_height_mm AS seller_foot_height_mm
+        seller_foot.foot_height_mm AS seller_foot_height_mm,
+        COALESCE(views.view_count, 0) AS view_count,
+        COALESCE(favorites.favorite_count, 0) AS favorite_count
       FROM items
       INNER JOIN brands ON brands.id = items.brand_id
       LEFT JOIN item_images AS images
@@ -178,6 +210,18 @@ export class MariaDbListingRepository implements ListingRepository {
        AND images.sort_order = 1
       LEFT JOIN foot_profiles AS seller_foot
         ON seller_foot.user_id = items.owner_user_id
+      LEFT JOIN (
+        SELECT item_id, COUNT(*) AS view_count
+        FROM events
+        WHERE event_type = 'view'
+        GROUP BY item_id
+      ) AS views ON views.item_id = items.id
+      LEFT JOIN (
+        SELECT item_id, COUNT(DISTINCT user_id) AS favorite_count
+        FROM events
+        WHERE event_type = 'favorite' AND user_id IS NOT NULL
+        GROUP BY item_id
+      ) AS favorites ON favorites.item_id = items.id
       WHERE items.id <> ?
         AND items.is_hidden = 0
         AND items.deleted_at IS NULL
@@ -292,6 +336,8 @@ export class MariaDbListingRepository implements ListingRepository {
         seller_foot.foot_length_mm AS seller_foot_length_mm,
         seller_foot.foot_width_mm AS seller_foot_width_mm,
         seller_foot.foot_height_mm AS seller_foot_height_mm,
+        COALESCE(views.view_count, 0) AS view_count,
+        COALESCE(favorites.favorite_count, 0) AS favorite_count,
         COUNT(events.id) AS event_count
       FROM items
       INNER JOIN brands ON brands.id = items.brand_id
@@ -300,6 +346,18 @@ export class MariaDbListingRepository implements ListingRepository {
        AND images.sort_order = 1
       LEFT JOIN foot_profiles AS seller_foot
         ON seller_foot.user_id = items.owner_user_id
+      LEFT JOIN (
+        SELECT item_id, COUNT(*) AS view_count
+        FROM events
+        WHERE event_type = 'view'
+        GROUP BY item_id
+      ) AS views ON views.item_id = items.id
+      LEFT JOIN (
+        SELECT item_id, COUNT(DISTINCT user_id) AS favorite_count
+        FROM events
+        WHERE event_type = 'favorite' AND user_id IS NOT NULL
+        GROUP BY item_id
+      ) AS favorites ON favorites.item_id = items.id
       LEFT JOIN events ON events.item_id = items.id
         AND events.event_type IN ('view', 'favorite', 'contact')
       ${whereSql}
@@ -325,7 +383,9 @@ export class MariaDbListingRepository implements ListingRepository {
         images.image_url AS primary_image_url,
         seller_foot.foot_length_mm AS seller_foot_length_mm,
         seller_foot.foot_width_mm AS seller_foot_width_mm,
-        seller_foot.foot_height_mm AS seller_foot_height_mm
+        seller_foot.foot_height_mm AS seller_foot_height_mm,
+        COALESCE(views.view_count, 0) AS view_count,
+        COALESCE(favorites.favorite_count, 0) AS favorite_count
       FROM items
       INNER JOIN brands ON brands.id = items.brand_id
       LEFT JOIN item_images AS images
@@ -333,6 +393,18 @@ export class MariaDbListingRepository implements ListingRepository {
        AND images.sort_order = 1
       LEFT JOIN foot_profiles AS seller_foot
         ON seller_foot.user_id = items.owner_user_id
+      LEFT JOIN (
+        SELECT item_id, COUNT(*) AS view_count
+        FROM events
+        WHERE event_type = 'view'
+        GROUP BY item_id
+      ) AS views ON views.item_id = items.id
+      LEFT JOIN (
+        SELECT item_id, COUNT(DISTINCT user_id) AS favorite_count
+        FROM events
+        WHERE event_type = 'favorite' AND user_id IS NOT NULL
+        GROUP BY item_id
+      ) AS favorites ON favorites.item_id = items.id
       WHERE items.id IN (${placeholders})
       `,
       command.listingIds
@@ -349,7 +421,9 @@ export class MariaDbListingRepository implements ListingRepository {
         images.image_url AS primary_image_url,
         seller_foot.foot_length_mm AS seller_foot_length_mm,
         seller_foot.foot_width_mm AS seller_foot_width_mm,
-        seller_foot.foot_height_mm AS seller_foot_height_mm
+        seller_foot.foot_height_mm AS seller_foot_height_mm,
+        COALESCE(views.view_count, 0) AS view_count,
+        COALESCE(favorites.favorite_count, 0) AS favorite_count
       FROM items
       INNER JOIN brands ON brands.id = items.brand_id
       LEFT JOIN item_images AS images
@@ -357,6 +431,18 @@ export class MariaDbListingRepository implements ListingRepository {
        AND images.sort_order = 1
       LEFT JOIN foot_profiles AS seller_foot
         ON seller_foot.user_id = items.owner_user_id
+      LEFT JOIN (
+        SELECT item_id, COUNT(*) AS view_count
+        FROM events
+        WHERE event_type = 'view'
+        GROUP BY item_id
+      ) AS views ON views.item_id = items.id
+      LEFT JOIN (
+        SELECT item_id, COUNT(DISTINCT user_id) AS favorite_count
+        FROM events
+        WHERE event_type = 'favorite' AND user_id IS NOT NULL
+        GROUP BY item_id
+      ) AS favorites ON favorites.item_id = items.id
       WHERE items.owner_user_id = ?
         AND items.deleted_at IS NULL
       ORDER BY items.created_at DESC
@@ -391,6 +477,8 @@ export class MariaDbListingRepository implements ListingRepository {
       sellerId: row.owner_user_id,
       createdAt: row.created_at,
       primaryImageUrl: row.primary_image_url ?? undefined,
+      viewCount: row.view_count ?? 0,
+      favoriteCount: row.favorite_count ?? 0,
       sellerFootProfile: FootProfile.create({
         lengthMm: row.seller_foot_length_mm ?? undefined,
         widthMm: row.seller_foot_width_mm ?? undefined,

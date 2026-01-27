@@ -20,7 +20,17 @@ export type UserModerationWriteCommand = {
   memo?: string | null;
 };
 
+export type CommentModerationWriteCommand = {
+  commentId: string;
+  reportId?: string;
+  actionType: "hide-comment" | "delete-comment" | "resolve-comment-report";
+  actorId: string;
+  reasonCode: string;
+  memo?: string | null;
+};
+
 export interface ModerationActionWriterRepository {
   moderateListing(command: ListingModerationWriteCommand): Promise<void>;
   moderateUser(command: UserModerationWriteCommand): Promise<void>;
+  moderateComment(command: CommentModerationWriteCommand): Promise<void>;
 }

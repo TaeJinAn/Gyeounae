@@ -40,6 +40,10 @@ export function ListingCard({
           {listing.brand} · {listing.sizeLabel} ·{" "}
           {t(conditionLabels[listing.condition] as any, locale)}
         </div>
+        <div className="text-[11px] text-navy-500">
+          {t("listing.count.views", locale)} {listing.viewCount} ·{" "}
+          {t("listing.count.favorites", locale)} {listing.favoriteCount}
+        </div>
         <div className="text-sm font-semibold text-navy-700">
           {listing.price.format()}
         </div>

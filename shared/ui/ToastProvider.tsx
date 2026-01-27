@@ -10,7 +10,7 @@ import {
   useState
 } from "react";
 
-type ToastType = "success" | "error";
+type ToastType = "success" | "error" | "info";
 
 type ToastPayload = {
   id: number;
@@ -21,6 +21,7 @@ type ToastPayload = {
 type ToastContextValue = {
   success: (message: string) => void;
   error: (message: string) => void;
+  info: (message: string) => void;
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -35,7 +36,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       success: (message: string) => push("success", message),
-      error: (message: string) => push("error", message)
+      error: (message: string) => push("error", message),
+      info: (message: string) => push("info", message)
     }),
     [push]
   );
@@ -55,7 +57,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             className={`rounded-xl border px-4 py-3 text-sm shadow-lg ${
               toast.type === "success"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-rose-200 bg-rose-50 text-rose-700"
+                : toast.type === "error"
+                  ? "border-rose-200 bg-rose-50 text-rose-700"
+                  : "border-ice-200 bg-white text-navy-700"
             }`}
           >
             {toast.message}

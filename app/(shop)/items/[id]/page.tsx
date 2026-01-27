@@ -22,6 +22,15 @@ import { ListingStatusControl } from "@shared/ui/ListingStatusControl";
 import { UpdateMyItemStatusUsecase } from "@features/usecases/UpdateMyItemStatusUsecase";
 import { errorResult, type Result } from "@shared/types/Result";
 import { MariaDbMyItemRepository } from "@infra/repositories/MariaDbMyItemRepository";
+import { ItemComments } from "@shared/ui/ItemComments";
+import { MariaDbCommentRepository } from "@infra/repositories/MariaDbCommentRepository";
+import { MariaDbCommentReportRepository } from "@infra/repositories/MariaDbCommentReportRepository";
+import { GetItemCommentsUsecase } from "@features/usecases/GetItemCommentsUsecase";
+import { CreateCommentUsecase } from "@features/usecases/CreateCommentUsecase";
+import { UpdateCommentUsecase } from "@features/usecases/UpdateCommentUsecase";
+import { DeleteCommentUsecase } from "@features/usecases/DeleteCommentUsecase";
+import { ReportCommentUsecase } from "@features/usecases/ReportCommentUsecase";
+import crypto from "crypto";
 
 export default async function ItemDetailPage({
   params
@@ -61,6 +70,15 @@ export default async function ItemDetailPage({
       userId: session.userId
     });
   }
+  const eventRepository = new MariaDbRecommendationEventRepository();
+  const viewCount = await eventRepository.countViews({ itemId: params.id });
+  const favoriteCount = await eventRepository.countFavorites({ itemId: params.id });
+  const isFavorited = session?.userId
+    ? await eventRepository.hasFavorite({
+        userId: session.userId,
+        itemId: params.id
+      })
+    : false;
   const user = session
     ? await new GetUserByIdUsecase(new MariaDbUserRepository()).execute({
         userId: session.userId
@@ -72,6 +90,9 @@ export default async function ItemDetailPage({
     session?.role === "ADMIN" || session?.role === "MODERATOR";
   const isPrivate =
     currentListing.visibility !== "visible" && !isOwner && !isAdmin;
+  const comments = await new GetItemCommentsUsecase(
+    new MariaDbCommentRepository()
+  ).execute({ itemId: params.id });
   const isBoots = listing.category === "boots";
   const buyerFoot = user?.footProfile;
   const sellerFoot = listing.sellerFootProfile;
@@ -140,6 +161,131 @@ export default async function ItemDetailPage({
     return result;
   }
 
+  async function createComment(formData: FormData): Promise<Result> {
+    "use server";
+    const currentSession = await getSessionPayload();
+    if (!currentSession) {
+      return errorResult("로그인이 필요합니다.");
+    }
+    const body = String(formData.get("body") ?? "");
+    const result = await new CreateCommentUsecase(
+      new MariaDbCommentRepository()
+    ).execute({
+      id: crypto.randomUUID(),
+      itemId: params.id,
+      userId: currentSession.userId,
+      body,
+      createdAt: new Date()
+    });
+    if (result.ok) {
+      revalidatePath(`/items/${params.id}`);
+    }
+    return result;
+  }
+
+  async function replyComment(formData: FormData): Promise<Result> {
+    "use server";
+    const currentSession = await getSessionPayload();
+    if (!currentSession) {
+      return errorResult("로그인이 필요합니다.");
+    }
+    const body = String(formData.get("body") ?? "");
+    const parentId = String(formData.get("parentId") ?? "");
+    const result = await new CreateCommentUsecase(
+      new MariaDbCommentRepository()
+    ).execute({
+      id: crypto.randomUUID(),
+      itemId: params.id,
+      userId: currentSession.userId,
+      parentId,
+      body,
+      createdAt: new Date()
+    });
+    if (result.ok) {
+      revalidatePath(`/items/${params.id}`);
+    }
+    return result;
+  }
+
+  async function updateComment(formData: FormData): Promise<Result> {
+    "use server";
+    const currentSession = await getSessionPayload();
+    if (!currentSession) {
+      return errorResult("로그인이 필요합니다.");
+    }
+    const commentId = String(formData.get("commentId") ?? "");
+    const body = String(formData.get("body") ?? "");
+    const result = await new UpdateCommentUsecase(
+      new MariaDbCommentRepository()
+    ).execute({
+      commentId,
+      userId: currentSession.userId,
+      body
+    });
+    if (result.ok) {
+      revalidatePath(`/items/${params.id}`);
+    }
+    return result;
+  }
+
+  async function deleteComment(formData: FormData): Promise<Result> {
+    "use server";
+    const currentSession = await getSessionPayload();
+    if (!currentSession) {
+      return errorResult("로그인이 필요합니다.");
+    }
+    const commentId = String(formData.get("commentId") ?? "");
+    const result = await new DeleteCommentUsecase(
+      new MariaDbCommentRepository()
+    ).execute({
+      commentId,
+      userId: currentSession.userId
+    });
+    if (result.ok) {
+      revalidatePath(`/items/${params.id}`);
+    }
+    return result;
+  }
+
+  async function reportComment(formData: FormData): Promise<Result> {
+    "use server";
+    const currentSession = await getSessionPayload();
+    if (!currentSession) {
+      return errorResult("로그인이 필요합니다.");
+    }
+    const commentId = String(formData.get("commentId") ?? "");
+    const reasonCode = String(formData.get("reasonCode") ?? "").trim();
+    const memo = String(formData.get("memo") ?? "").trim();
+    if (!reasonCode) {
+      return errorResult("신고 사유를 선택해주세요.");
+    }
+    const comment = await new MariaDbCommentRepository().findById({
+      commentId
+    });
+    if (!comment) {
+      return errorResult("댓글을 찾을 수 없어요.");
+    }
+    if (comment.userId === currentSession.userId) {
+      return errorResult("내 댓글은 신고할 수 없어요.");
+    }
+    const result = await new ReportCommentUsecase(
+      new MariaDbCommentReportRepository()
+    ).execute({
+      id: crypto.randomUUID(),
+      commentId,
+      reporterUserId: currentSession.userId,
+      reasonCode,
+      status: "PENDING",
+      createdAt: new Date(),
+      memo: memo || null
+    });
+    if (result.ok) {
+      revalidatePath(`/items/${params.id}`);
+      revalidatePath("/admin/comments");
+    }
+    return result;
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <section className="rounded-2xl border border-ice-100 bg-white p-6">
@@ -182,6 +328,12 @@ export default async function ItemDetailPage({
               {listing.tradeMethod}
             </span>
           ) : null}
+          <span className="rounded-full border border-ice-200 px-2 py-1">
+            {t("listing.count.views", locale)} {viewCount}
+          </span>
+          <span className="rounded-full border border-ice-200 px-2 py-1">
+            {t("listing.count.favorites", locale)} {favoriteCount}
+          </span>
         </div>
         <div className="mt-4 text-base font-semibold text-navy-700">
           {listing.price.format()}
@@ -192,6 +344,8 @@ export default async function ItemDetailPage({
           hideLabel={t("item.hide", locale)}
           favoriteDoneLabel={t("item.favorite.done", locale)}
           hideDoneLabel={t("item.hide.done", locale)}
+          initialFavorited={isFavorited}
+          initialFavoriteCount={favoriteCount}
         />
         {isOwner ? (
           <ListingStatusControl
@@ -285,6 +439,41 @@ export default async function ItemDetailPage({
           </div>
         </div>
       </section>
+
+      <ItemComments
+        itemId={params.id}
+        locale={locale}
+        currentUserId={session?.userId}
+        comments={comments}
+        reasonOptions={[
+          { value: "spam", label: t("report.reason.spam", locale) },
+          { value: "fraud", label: t("report.reason.fraud", locale) },
+          { value: "inappropriate", label: t("report.reason.inappropriate", locale) },
+          { value: "other", label: t("report.reason.other", locale) }
+        ]}
+        labels={{
+          title: t("comments.title", locale),
+          empty: t("comments.empty", locale),
+          addPlaceholder: t("comments.placeholder", locale),
+          addButton: t("comments.add", locale),
+          replyButton: t("comments.reply", locale),
+          editButton: t("comments.edit", locale),
+          deleteButton: t("comments.delete", locale),
+          reportButton: t("comments.report", locale),
+          saveButton: t("comments.save", locale),
+          cancelButton: t("comments.cancel", locale),
+          deletedLabel: t("comments.deleted", locale),
+          hiddenLabel: t("comments.hidden", locale),
+          reportReasonLabel: t("comments.report.reason", locale),
+          reportMemoLabel: t("comments.report.memo", locale),
+          reportSubmitLabel: t("comments.report.submit", locale)
+        }}
+        onCreate={createComment}
+        onReply={replyComment}
+        onUpdate={updateComment}
+        onDelete={deleteComment}
+        onReport={reportComment}
+      />
 
       <section className="flex flex-col gap-3">
         <div className="text-sm font-semibold text-navy-700">

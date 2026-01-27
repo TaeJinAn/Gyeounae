@@ -24,6 +24,8 @@ export function ToastBridge() {
     lastKey.current = key;
     if (type === "success") {
       toast.success(message);
+    } else if (type === "info") {
+      toast.info(message);
     } else {
       toast.error(message);
     }

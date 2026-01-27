@@ -27,6 +27,8 @@ export type ListingProps = {
   createdAt: Date;
   primaryImageUrl?: string;
   sellerFootProfile?: FootProfile;
+  viewCount?: number;
+  favoriteCount?: number;
 };
 
 export class Listing {
@@ -106,6 +108,14 @@ export class Listing {
 
   get sellerFootProfile() {
     return this.props.sellerFootProfile;
+  }
+
+  get viewCount() {
+    return this.props.viewCount ?? 0;
+  }
+
+  get favoriteCount() {
+    return this.props.favoriteCount ?? 0;
   }
 
   canBeShown() {

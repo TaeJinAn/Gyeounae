@@ -88,4 +88,52 @@ export class MariaDbRecommendationEventRepository
     );
     return rows.map((row) => row.item_id);
   }
+
+  async hasFavorite(command: { userId: string; itemId: string }) {
+    const [rows] = await mariaDbPool.query<Array<{ count: number }>>(
+      `
+      SELECT COUNT(*) AS count
+      FROM events
+      WHERE user_id = ?
+        AND item_id = ?
+        AND event_type = 'favorite'
+      `,
+      [command.userId, command.itemId]
+    );
+    return (rows[0]?.count ?? 0) > 0;
+  }
+
+  async removeFavorite(command: { userId: string; itemId: string }) {
+    await mariaDbPool.query(
+      `
+      DELETE FROM events
+      WHERE user_id = ? AND item_id = ? AND event_type = 'favorite'
+      `,
+      [command.userId, command.itemId]
+    );
+  }
+
+  async countViews(command: { itemId: string }) {
+    const [rows] = await mariaDbPool.query<Array<{ count: number }>>(
+      `
+      SELECT COUNT(*) AS count
+      FROM events
+      WHERE item_id = ? AND event_type = 'view'
+      `,
+      [command.itemId]
+    );
+    return rows[0]?.count ?? 0;
+  }
+
+  async countFavorites(command: { itemId: string }) {
+    const [rows] = await mariaDbPool.query<Array<{ count: number }>>(
+      `
+      SELECT COUNT(DISTINCT user_id) AS count
+      FROM events
+      WHERE item_id = ? AND event_type = 'favorite' AND user_id IS NOT NULL
+      `,
+      [command.itemId]
+    );
+    return rows[0]?.count ?? 0;
+  }
 }

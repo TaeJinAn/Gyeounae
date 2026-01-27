@@ -1,4 +1,5 @@
 import type {
+  CommentModerationWriteCommand,
   ListingModerationWriteCommand,
   ModerationActionWriterRepository,
   UserModerationWriteCommand
@@ -54,6 +55,36 @@ export class MariaDbModerationActionWriterRepository
           crypto.randomUUID(),
           command.actorId,
           command.userId,
+          command.actionType,
+          command.reasonCode,
+          command.memo ?? null,
+          new Date()
+        ]
+      );
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async moderateComment(command: CommentModerationWriteCommand) {
+    const connection = await mariaDbPool.getConnection();
+    try {
+      await connection.beginTransaction();
+      await this.applyCommentAction(connection, command);
+      await connection.query(
+        `
+        INSERT INTO moderation_actions (
+          id, admin_user_id, target_type, target_id, action_type, reason_code, memo, created_at
+        ) VALUES (?, ?, 'comment', ?, ?, ?, ?, ?)
+        `,
+        [
+          crypto.randomUUID(),
+          command.actorId,
+          command.commentId,
           command.actionType,
           command.reasonCode,
           command.memo ?? null,
@@ -132,5 +163,42 @@ export class MariaDbModerationActionWriterRepository
     await connection.query("UPDATE users SET status = 'banned' WHERE id = ?", [
       command.userId
     ]);
+  }
+
+  private async applyCommentAction(
+    connection: any,
+    command: CommentModerationWriteCommand
+  ) {
+    if (command.actionType === "hide-comment") {
+      await connection.query("UPDATE comments SET is_hidden = 1 WHERE id = ?", [
+        command.commentId
+      ]);
+      if (command.reportId) {
+        await connection.query(
+          "UPDATE comment_reports SET status = 'RESOLVED' WHERE id = ?",
+          [command.reportId]
+        );
+      }
+      return;
+    }
+    if (command.actionType === "delete-comment") {
+      await connection.query(
+        "UPDATE comments SET deleted_at = NOW() WHERE id = ?",
+        [command.commentId]
+      );
+      if (command.reportId) {
+        await connection.query(
+          "UPDATE comment_reports SET status = 'RESOLVED' WHERE id = ?",
+          [command.reportId]
+        );
+      }
+      return;
+    }
+    if (command.actionType === "resolve-comment-report" && command.reportId) {
+      await connection.query(
+        "UPDATE comment_reports SET status = 'RESOLVED' WHERE id = ?",
+        [command.reportId]
+      );
+    }
   }
 }

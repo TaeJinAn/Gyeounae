@@ -7,6 +7,7 @@ const adminNav: Array<{ href: string; key: TranslationKey }> = [
   { href: "/admin/items", key: "admin.nav.items" },
   { href: "/admin/users", key: "admin.nav.users" },
   { href: "/admin/reports", key: "admin.nav.reports" },
+  { href: "/admin/comments", key: "admin.nav.comments" },
   { href: "/admin/inquiries", key: "admin.nav.inquiries" },
   { href: "/admin/ads", key: "admin.nav.ads" },
   { href: "/admin/moderation-actions", key: "admin.nav.logs" }
