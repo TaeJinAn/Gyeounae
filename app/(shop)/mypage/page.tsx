@@ -33,7 +33,10 @@ async function deleteItem(formData: FormData) {
   if (!user || user.identityStatus !== "verified") {
     redirect("/verify");
   }
-  const itemId = String(formData.get("itemId"));
+  const itemId = String(formData.get("itemId") ?? formData.get("listingId") ?? "");
+  if (!itemId) {
+    return errorResult("상품을 찾을 수 없어요.");
+  }
   const result = await new DeleteMyItemUsecase(
     new MariaDbMyItemRepository()
   ).execute({

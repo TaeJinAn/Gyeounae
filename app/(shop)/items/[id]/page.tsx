@@ -32,6 +32,8 @@ import { DeleteCommentUsecase } from "@features/usecases/DeleteCommentUsecase";
 import { ReportCommentUsecase } from "@features/usecases/ReportCommentUsecase";
 import crypto from "crypto";
 
+export const dynamic = "force-dynamic";
+
 export default async function ItemDetailPage({
   params
 }: {
