@@ -82,7 +82,8 @@ export function ListingCard({
         </div>
         <div className="text-[11px] text-navy-500">
           {t("listing.count.views", locale)} {listing.viewCount} ·{" "}
-          {t("listing.count.favorites", locale)} {listing.favoriteCount}
+          {t("listing.count.favorites", locale)} {listing.favoriteCount} ·{" "}
+          {t("listing.count.comments", locale)} {listing.commentCount}
         </div>
         {totalMatch !== null ? (
           <div className="text-[11px]">

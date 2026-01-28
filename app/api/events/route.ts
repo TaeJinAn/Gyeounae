@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getSessionPayload } from "@shared/auth/session";
 import { LogRecommendationEventUsecase } from "@features/usecases/LogRecommendationEventUsecase";
 import { MariaDbRecommendationEventRepository } from "@infra/repositories/MariaDbRecommendationEventRepository";
@@ -23,6 +24,15 @@ export async function POST(request: Request) {
     userId: session?.userId,
     eventType: payload.type
   });
+
+  revalidateTag(`item:${payload.itemId}`);
+  revalidateTag(`item:counts:${payload.itemId}`);
+  revalidateTag("admin:items");
+  revalidatePath(`/items/${payload.itemId}`);
+  revalidatePath("/admin/items");
+  revalidatePath("/");
+  revalidatePath("/ski");
+  revalidatePath("/snowboard");
 
   return NextResponse.json({ ok: true });
 }

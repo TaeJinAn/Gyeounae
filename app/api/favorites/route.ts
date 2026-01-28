@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getSessionPayload } from "@shared/auth/session";
 import { MariaDbRecommendationEventRepository } from "@infra/repositories/MariaDbRecommendationEventRepository";
 import { RecommendationEvent } from "@domain/entities/RecommendationEvent";
@@ -41,6 +42,14 @@ export async function POST(request: Request) {
   }
 
   const favoriteCount = await repository.countFavorites({ itemId: payload.itemId });
+  revalidateTag(`item:${payload.itemId}`);
+  revalidateTag(`item:counts:${payload.itemId}`);
+  revalidateTag("admin:items");
+  revalidatePath(`/items/${payload.itemId}`);
+  revalidatePath("/admin/items");
+  revalidatePath("/");
+  revalidatePath("/ski");
+  revalidatePath("/snowboard");
   return NextResponse.json({
     ok: true,
     message: already ? "찜이 해제되었습니다." : "찜했습니다.",

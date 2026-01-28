@@ -10,7 +10,7 @@ import { GetUserByIdUsecase } from "@features/usecases/GetUserByIdUsecase";
 import { MariaDbUserRepository } from "@infra/repositories/MariaDbUserRepository";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { calculateFootMatch } from "@domain/foot/FootMatch";
 import { conditionLabels } from "@domain/value-objects/ItemCondition";
 import { ItemActionButtons } from "@shared/ui/ItemActionButtons";
@@ -204,6 +204,13 @@ export default async function ItemDetailPage({
     });
     if (result.ok) {
       revalidatePath(`/items/${params.id}`);
+      revalidatePath("/admin/items");
+      revalidatePath("/");
+      revalidatePath("/ski");
+      revalidatePath("/snowboard");
+      revalidateTag(`item:${params.id}`);
+      revalidateTag(`item:counts:${params.id}`);
+      revalidateTag("admin:items");
     }
     return result;
   }
@@ -228,6 +235,13 @@ export default async function ItemDetailPage({
     });
     if (result.ok) {
       revalidatePath(`/items/${params.id}`);
+      revalidatePath("/admin/items");
+      revalidatePath("/");
+      revalidatePath("/ski");
+      revalidatePath("/snowboard");
+      revalidateTag(`item:${params.id}`);
+      revalidateTag(`item:counts:${params.id}`);
+      revalidateTag("admin:items");
     }
     return result;
   }
@@ -249,6 +263,13 @@ export default async function ItemDetailPage({
     });
     if (result.ok) {
       revalidatePath(`/items/${params.id}`);
+      revalidatePath("/admin/items");
+      revalidatePath("/");
+      revalidatePath("/ski");
+      revalidatePath("/snowboard");
+      revalidateTag(`item:${params.id}`);
+      revalidateTag(`item:counts:${params.id}`);
+      revalidateTag("admin:items");
     }
     return result;
   }

@@ -29,6 +29,7 @@ export type ListingProps = {
   sellerFootProfile?: FootProfile;
   viewCount?: number;
   favoriteCount?: number;
+  commentCount?: number;
 };
 
 export class Listing {
@@ -116,6 +117,10 @@ export class Listing {
 
   get favoriteCount() {
     return this.props.favoriteCount ?? 0;
+  }
+
+  get commentCount() {
+    return this.props.commentCount ?? 0;
   }
 
   canBeShown() {

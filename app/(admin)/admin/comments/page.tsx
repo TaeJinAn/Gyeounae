@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getAdminActorId } from "@infra/auth/adminSession";
 import { MariaDbModerationActionWriterRepository } from "@infra/repositories/MariaDbModerationActionWriterRepository";
 import { MariaDbCommentReportRepository } from "@infra/repositories/MariaDbCommentReportRepository";
@@ -14,6 +14,7 @@ async function moderateComment(formData: FormData) {
   "use server";
   const commentId = String(formData.get("commentId"));
   const reportId = String(formData.get("reportId"));
+  const itemId = String(formData.get("itemId"));
   const actionType = String(formData.get("actionType"));
   const reasonCode = String(formData.get("reasonCode") ?? "").trim();
   const memo = String(formData.get("memo") ?? "").trim();
@@ -43,6 +44,12 @@ async function moderateComment(formData: FormData) {
     revalidatePath("/");
     revalidatePath("/ski");
     revalidatePath("/snowboard");
+    if (itemId) {
+      revalidatePath(`/items/${itemId}`);
+      revalidateTag(`item:${itemId}`);
+      revalidateTag(`item:counts:${itemId}`);
+    }
+    revalidateTag("admin:items");
   }
   return result;
 }
@@ -112,6 +119,7 @@ export default async function AdminCommentsPage() {
               <AdminCommentActions
                 commentId={report.commentId}
                 reportId={report.reportId}
+                itemId={report.itemId}
                 reasonOptions={reasonOptions}
                 labels={{
                   hide: t("admin.comments.hide", locale),

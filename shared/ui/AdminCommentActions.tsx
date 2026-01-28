@@ -9,6 +9,7 @@ type CommentActionType = "hide-comment" | "delete-comment" | "resolve-comment-re
 type AdminCommentActionsProps = {
   commentId: string;
   reportId: string;
+  itemId: string;
   labels: {
     hide: string;
     delete: string;
@@ -27,6 +28,7 @@ type AdminCommentActionsProps = {
 export function AdminCommentActions({
   commentId,
   reportId,
+  itemId,
   labels,
   reasonOptions,
   onAction
@@ -41,6 +43,7 @@ export function AdminCommentActions({
     const formData = new FormData();
     formData.set("commentId", commentId);
     formData.set("reportId", reportId);
+    formData.set("itemId", itemId);
     formData.set("actionType", action);
     formData.set("reasonCode", payload.reasonCode);
     formData.set("memo", payload.memo);
