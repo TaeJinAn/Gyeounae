@@ -39,6 +39,7 @@ export default async function ReportPage({
   if (!session) {
     redirect("/auth");
   }
+  const locale = getLocale();
 
   const itemId = typeof searchParams.itemId === "string" ? searchParams.itemId : "";
   const sellerId = typeof searchParams.sellerId === "string" ? searchParams.sellerId : "";
